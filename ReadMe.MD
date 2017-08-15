@@ -42,20 +42,20 @@ And the project `NOT contained` the data. The data isn't open data and I have no
 
 ###	几个实现的MapReduce
 
-MapReduce实现名| 	实现类 | 描述
-------- | -------| -------
-DataFilter	|DataFilterDriver.class|	A Moster-DataFilter for Filter CSV 数据过滤器，提取指导列的数据; 
-DateMerge|	DateMergeDriver.class|	A Moster-DateMerge for Merge Some Column in CSV;数据合并，将指定列数据合并成一列
-PointBuffer|PointBufferDriver.class|	A Moster-PointBuffer for Point Buffer;XY点的缓冲区分析
-BigJoinSmall|  BigJoinSmallDriver.class|	A Moster-PointBuffer for Data Join(A Small Size Data and  A bigData ) ;大数据集和小数据集的连接
-JoinData|	JoinDataDriver.class|	A Moster-DataJoin for Data Join;  大小相等的数据集连接 Reduce侧连接
-JoinDataByDate|	JoinDataByDateDriver.class|	A Moster-DataJoin for Data Join By Date; 使用日期作为联结键连接
-GBK|	GBKDriver.class| A Moster for GBK Support;中文转码支持 GBK转UTF-8
-ClimateDriver|	ClimateDriver.class| A Moster for ClimateDriver case; 气象数据处理
-XY2Point|	XY2PointDriver.class| A Moster Tool: (X,Y) convert to WKT Format .e.g: Point(X Y); 将XY坐标转换成Point点
-Typhoon|	TyphoonDriver.class|	A Moster TyhoonData Case; 台风缓冲区处理
-GABP|	BPAnnDriver.class	|A Moster GABP Case; GABP算法实现
-DateAvg|	DateAvgDriver.class|A Moster calculate Avg by Date; 求平均值
+MapReduce实现名| 	实现类 | 描述EN | 描述 CN
+------- | -------| ------- | -------
+DataFilter	|DataFilterDriver.class|	DataFilter for filter CSV| 数据过滤器，提取指导列的数据 
+DateMerge|	DateMergeDriver.class|	DateMerge for merge some column in CSV |数据合并，将指定列数据合并成一列
+PointBuffer|PointBufferDriver.class|	PointBuffer for Point Buffer | XY点的缓冲区分析
+BigJoinSmall|  BigJoinSmallDriver.class|	PointBuffer for data join(A small size data and a big data ) | 大数据集和小数据集的连接
+JoinData|	JoinDataDriver.class|	data join for same size data| 大小相等的数据集连接 Reduce侧连接
+JoinDataByDate|	JoinDataByDateDriver.class|	data join for data join by date | 使用日期作为联结键连接
+GBK|	GBKDriver.class| GBK encoding convertor| 中文转码支持 GBK转UTF-8
+ClimateDriver|	ClimateDriver.class| ClimateDriver case | 气象数据处理
+XY2Point|	XY2PointDriver.class| Tool: (X,Y) convert to WKT format .e.g: Point(X Y)| 将XY坐标转换成Point点
+Typhoon|	TyphoonDriver.class|	typhoon data buffer analysis | 台风缓冲区处理
+GABP|	BPAnnDriver.class	|GABP analysis | GABP算法实现
+DateAvg|	DateAvgDriver.class| calculate Avg by Date |求平均值
 
 
 
