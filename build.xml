@@ -1,0 +1,334 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<project name="moster" default="debug" >
+	<property name="Name" value="moster"/>
+	<property name="src.dir" value="${basedir}/src"/>
+	<property name="lib.dir" value="${basedir}/lib"/>
+	<property name="relib.dir" value="${basedir}/relib"/>
+	<property name="version" value="0.42"/>
+	<property name="build.dir" value="${basedir}/build"/>
+	<property name="data.dir" value="${basedir}/data"/>
+	<property name="build.classes" value="${build.dir}/classes"/>
+	<property name="dist.dir" value="${basedir}/dist"/>
+	<property name="dist.lib" value="${dist.dir}/lib"/>
+	<property name="dist.conf" value="${dist.dir}/conf"/>
+	<property name="dist.classes" value="${basedir}/distclasses"/>
+	<property name="conf.dir" value="${basedir}/conf"/>
+	<property name="main-class" value="info/pixstone/moster/hadoop/MosterDriver"/>
+	<!-- 配置集群上的Hadoop路径-->
+	<property name="Hadoop.Path" value="/usr/lib/hadoop-0.20"/>
+	<!-- Hadoop集群上的项目结构 注:路径为HDFS相对路径，非本地路径-->
+	<property name="Hadoop.data" value="moster/data"/>
+	<!-- Hadoop处理结果输出路径 注:路径为HDFS相对路径，非本地路径-->
+	<property name="Hadoop.out" value="${Hadoop.data}/out"/>
+	<!-- SSH 地址 用户名密码 -->
+	<property name="Hadoop.UserName" value=" "/>
+
+	<property name="Hadoop.PassWd" value=" "/>  
+
+	<property name="Hadoop.Host" value="hadoop.nchc.org.tw"/>
+	<!-- 项目在集群上的路径 -->
+	<property name="Project.Path" value="/home/h2888/moster"/>
+	
+	<!-->第三方lib的ClassPath<-->
+	<path id="src.lib.classpath">
+		<fileset dir="${lib.dir}">
+			<include name="**/*.jar"/>		
+		</fileset>		
+	</path>
+	
+		<!-->第三方lib的ClassPath<-->
+	<path id="lib.classpath">
+		<fileset dir="${relib.dir}">
+			<include name="**/*.jar"/>		
+		</fileset>		
+	</path>
+	
+		<!-->配置文件<-->
+	<path id="conf">
+		<pathelement location="${conf.dir}"/>
+	</path>
+			<!-->编译用ClassPath<-->
+	<path id="classpath">
+		<pathelement location="${build.classes}"/>
+		<path refid="src.lib.classpath"/>
+		<path refid="conf"/>
+	</path>
+			<pathconvert property="dist.lib.classpath" pathsep=","> 
+			<mapper>  
+				<chainedmapper>  
+					<flattenmapper/>  
+					<globmapper from="*" to="${Project.Path}/dist/lib/*"/>  
+				</chainedmapper>  
+			</mapper>  
+			 <path refid="lib.classpath"/>  
+		</pathconvert>	
+				<!-->项目清理<-->
+	<target name="clean">
+		<delete dir="${basedir}/build"/>
+		<delete dir="${basedir}/dist"/>
+		<mkdir dir="${basedir}/build/"/>
+		<mkdir dir="${basedir}/dist"/>
+	</target>
+						<!-->项目编译<-->
+	<target name="compile" depends="clean">
+		<mkdir dir="${basedir}/build/classes"/>
+		<javac srcdir="${src.dir}" destdir="${build.classes}" includeantruntime="no">
+		<compilerarg value="-Xlint:unchecked"/> 
+			<classpath refid="classpath"/>	
+		</javac>	
+		  <copy todir="${build.classes}">
+            <fileset dir="${conf.dir}">
+                <include name="**/*.properties"/>    
+                <include name="**/*.xml"/>
+            </fileset>
+        </copy>
+	</target>
+		<!-->项目具有调试信息的编译<-->
+	<target name="compile-debug" depends="clean">
+		<mkdir dir="${basedir}/build/classes"/>
+		<javac debug="true" debuglevel="lines,source,vars" srcdir="${src.dir}" destdir="${build.classes}" includeantruntime="no">
+			<classpath refid="classpath"/>		
+		</javac>	
+		  <copy todir="${build.classes}">
+            <fileset dir="${conf.dir}">
+                <include name="**/*.properties"/>    
+                <include name="**/*.xml"/>
+            </fileset>
+        </copy>
+	</target>
+			<!-->项目调试<-->
+	<target name="debug" depends="compile-debug">
+				<echo  message="${conf.dir}/log4j.properties"/>
+		<java classname="info.pixstone.moster.tool.StringUtil" fork="true">
+			<classpath refid="classpath"/>
+			<arg value=" -Dlog4j.configuration=${build.classes}/log4j.properties"/>
+		</java>
+	</target>
+	<target name="validate" depends="compile-debug">
+				<echo  message="${conf.dir}/log4j.properties"/>
+		<java classname="info.pixstone.moster.tool.BPAnnVaildate" fork="true">
+			<classpath refid="classpath"/>
+			<arg value=" -Dlog4j.configuration=${build.classes}/log4j.properties
+									-d  /  
+									-o 11 
+									-i 0,1,2,4,5,6,7,8,12 
+									-fa E:\\moster\\data\\gabp8.csv\\part-00000 
+									-fd E:\\moster\\data\\origin.csv"/>
+		</java>
+	</target>
+	<!-->项目打包<-->
+	<target name="dist" depends="compile-debug">
+		<copy todir="${dist.lib}">
+		<fileset dir="${relib.dir}">
+			 <include name="**/*.jar"/>		
+			</fileset>
+		</copy>
+		<mkdir dir="${dist.conf}"/>
+		<copy todir="${dist.conf}">
+		<fileset dir="${conf.dir}">
+			 <include name="**/*.properties"/>    
+			<include name="**/*.xml"/>
+			</fileset>
+		</copy>
+		<copy todir="${build.classes}">
+		<fileset dir="${dist.classes}">
+			</fileset>
+		</copy>
+	
+		<jar jarfile="${dist.dir}/${Name}-${version}.jar" basedir="${build.classes}">
+				<manifest>
+							<attribute name="Main-Class" value="${main-class}"/>
+							<attribute name="Class-Path" value="${dist.lib.classpath} " /> 
+							<attribute name="Version" value="${version}"/>
+							<attribute name="Author" value="pixstone"/>
+				</manifest>
+			</jar>		
+	<!--	<java fork="true" jar="${dist.dir}/${Name}-${version}.jar" /> -->
+	</target>
+	<target name="send" depends="dist">  
+			<scp todir="${Hadoop.UserName}:${Hadoop.PassWd}@${Hadoop.Host}:${Project.Path}/dist"
+					trust="true"
+					file="${dist.dir}/${Name}-${version}.jar"/>  
+	</target>
+	<!--提交代码和数据到集群 alpha -->
+	<target name="send-all" depends="dist">  
+			<sshexec host="${Hadoop.Host}"  
+							username="${Hadoop.UserName}"  
+							password="${Hadoop.PassWd}"  
+							command="rm -rf ${Project.Path}/dist;mkdir ${Project.Path}/dist" trust="true"/>  	
+			<scp todir="${Hadoop.UserName}:${Hadoop.PassWd}@${Hadoop.Host}:${Project.Path}/dist"  trust="true">  
+				  <fileset dir="${dist.dir}"/>  
+			</scp>  
+	</target>
+	<!--提交数据到集群 alpha -->
+  	<target name="send-data" depends=""> 
+			<sshexec host="${Hadoop.Host}"  
+							username="${Hadoop.UserName}"  
+							password="${Hadoop.PassWd}"  
+							command="mkdir ${Project.Path}/data" trust="true"/>  	
+			<scp todir="${Hadoop.UserName}:${Hadoop.PassWd}@${Hadoop.Host}:${Project.Path}/data"  trust="true">  
+				  <fileset dir="${data.dir}"/>  
+			</scp>  
+	</target>  	
+	<!--启动集群-->
+	<target name="start" depends="">  
+		 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="sh ${Hadoop.Path}/bin/start-all.sh" trust="true"/>  
+	</target>  
+	<!--停止集群-->
+	<target name="stop" depends="">  
+		 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="sh ${Hadoop.Path}/bin/stop-all.sh" trust="true"/>  
+	</target>
+	<!--废弃-->
+	<target name="run" depends="">  
+		<input message="指定执行的Driver" addproperty="run.target"/>
+		<input message="指定输入文件" addproperty="input.file"/>
+		<input message="指定输出文件" addproperty="output.file"/>
+		<input message="指定其他参数" addproperty="other.args"/>
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar ${run.target} ${input.file} ${output.file} ${other.args}  -t 1,2,3 " trust="true"/>  
+	</target>
+	<!--数据连接-->
+	<target name="DataJoin" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar JoinData ${Hadoop.data}/out/sum_XY.csv ${Hadoop.out}/sum206_join.csv -g 1,1 -f site.csv,climateData.csv" trust="true"/>  
+	</target>
+	<target name="DateJoin" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar JoinDataByDate  ${Hadoop.data}/join ${Hadoop.out}/data3.csv -g 3,10 -f cData.csv,Rdata.csv -d d -dm  '/'  " trust="true"/>  
+	</target>
+	<target name="DateMerge" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar DateMerge  ${Hadoop.data}/climateData.csv ${Hadoop.out}/climateData_merge.csv -t 2,3,4" trust="true"/>  
+	</target>
+	<target name="DataFilter" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar DataFilter ${Hadoop.data}/data.csv ${Hadoop.out}/Data_Fiter.csv -t 0,1,2,5,6,7,8,9,10,11,12,13,14 -d '/'" trust="true"/>  
+	</target>
+	<!-- 核心模型-->
+	<target name="GABP" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar GABP 
+									${Hadoop.data}/origin.csv 
+									${Hadoop.out}/gabp9.csv 
+									-i 0,1,2,4,5,6,7,8,12 
+									-t 11 
+									-k 9 
+									-d '/'
+									-p 500
+									-e 200 
+									-m 52 
+									-r 1
+									-tr 1000
+									-lr 0.5" trust="true"/>  
+	</target>
+	<target name="DateAvg" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar DateAvg ${Hadoop.data}/tData.csv ${Hadoop.out}/data2.csv  -t 1,2,3,4,5,6,7,8,9 -k 0 -dp 10 -dm '/'  -d d " trust="true"/>  
+	</target>
+	<target name="Climate" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar ClimateDriver   -files ${Project.Path}/data/site_GBK.csv ${Hadoop.data}/climateData.csv ${Hadoop.out}/climateData_Fiter.csv " trust="true"/>  
+	</target>	
+	
+	<target name="Typhoon" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar Typhoon  -libjars ${dist.lib.classpath}   -files ${Project.Path}/data/xian_fjzq_Project.csv ${Hadoop.data}/sum2_dbf.csv ${Hadoop.out}/sum2.csv " trust="true"/>  
+	</target>
+	<target name="BigJoinSmall" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar BigJoinSmall  -files ${Hadoop.data}/site_GBK.csv  ${Hadoop.out}/climateData_Fiter.csv ${Hadoop.out}/climateData_join.csv   -sp 1 -bp 1  -sn site_GBK.csv" trust="true"/>  
+	</target>
+	<!--中文字符处理-->
+	<target name="GBK" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar GBK  ${Hadoop.data}/site.csv ${Hadoop.out}/site_GBK.csv" trust="true"/>  
+	</target>
+	<!-- XY列转换成Point-->
+	<target name="XY" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar XY2Point  ${Hadoop.data}/sum2_dbf_GBK.csv ${Hadoop.out}/sum_XY.csv -x 5 -y 6" trust="true"/>  
+	</target>
+	<!-- 点缓冲区分析-->
+	<target name="PointBuffer" depends="">  
+			 <sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop jar ${Project.Path}/dist/${Name}-${version}.jar PointBuffer -libjars ${dist.lib.classpath}  ${Hadoop.data}/sum2_dbf_GBK.csv ${Hadoop.out}/sum_Buffer.csv -lat 6 -lng 5 -d 380" trust="true"/>  
+	</target>
+	<!-- 移除数据-->
+	<target name="remove" depends="">  
+		<sshexec host="${Hadoop.Host}"  
+							username="${Hadoop.UserName}"  
+							password="${Hadoop.PassWd}"  
+							command="rm ${Project.Path}/dist/${Name}-${version}.jar " trust="true"/>  
+	</target>
+	<!-- 远程本地数据 推送到Hadoop集群中-->
+	<target name="put" depends="">  
+		<sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop fs -put ${Project.Path}/data/  ${Hadoop.data}"  trust="true"/>  
+	</target>
+	<target name="putjar" depends="">  
+		<sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop fs -put ${Project.Path}/dist/lib  ${Hadoop.data}/lib"  trust="true"/>  
+	</target>
+	<target name="lsr" depends="">  
+		<sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop fs -lsr"  trust="true"/>  
+	</target>
+	<!--删除Hadoop 生成数据-->
+	<target name="rmr" depends="">  
+		<sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop fs -rmr moster/data/out"  trust="true"/>  
+	</target>
+	<!--将Hadoop中生成的数据提取到远程服务器本地中 -->
+	<target name ="output">
+	<sshexec host="${Hadoop.Host}"  
+			username="${Hadoop.UserName}"  
+			password="${Hadoop.PassWd}"  
+			command="${Hadoop.Path}/bin/hadoop fs -get  ${Hadoop.out} ${Project.Path}/data/"  trust="true"/>  
+	</target>
+	<!--从远程服务器上获取处理结果到本地上-->
+	<target name ="get">
+			<scp file="${Hadoop.UserName}:${Hadoop.PassWd}@${Hadoop.Host}:${Project.Path}/data/out/*"  todir="${data.dir}/" trust="true">  
+			</scp> 
+	</target>
+</project>
+
